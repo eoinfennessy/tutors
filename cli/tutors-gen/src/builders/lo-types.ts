@@ -33,6 +33,25 @@ export interface LabStep {
   id: string;
 }
 
+export type QuestionType = "radio" | "checkbox" | "textbox";
+
+export interface AnswerOption {
+  option: string;
+  isAnswer: boolean;
+}
+
+export interface QuizQuestion {
+  title: string;
+  questionType: QuestionType;
+  questionMd: string;
+  answerOptions?: AnswerOption[];
+  textboxAnswers?: string[];
+  hint?: string;
+  explanation?: string;
+  route: string;
+  id: string;
+}
+
 export interface LearningObject {
   id: string;
   route: string;
@@ -45,13 +64,13 @@ export interface LearningObject {
   video: string;
   videoids: VideoIdentifiers;
   frontMatter: Properties;
-  los: Array<LearningObject | LabStep>;
+  los: Array<LearningObject | LabStep | QuizQuestion>;
   properties?: Properties;
   calendar?: Properties;
   hide: boolean;
 }
 
-export const loTypes = ["/note", "/book", "/archive", "/web", "/github", "/panelnote", "/paneltalk", "/panelvideo", "/talk", "/unit", "/side", "/topic"];
+export const loTypes = ["/note", "/book", "/quiz", "/archive", "/web", "/github", "/panelnote", "/paneltalk", "/panelvideo", "/talk", "/unit", "/side", "/topic"];
 
 export const preOrder = new Map([
   ["unit", 1],
@@ -66,6 +85,7 @@ export const preOrder = new Map([
   ["archive", 10],
   ["panelvideo", 11],
   ["topic", 12],
-  ["unknown", 13],
+  ["quiz", 13],
+  ["unknown", 14],
   ["", 0],
 ]);

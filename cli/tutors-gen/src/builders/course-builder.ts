@@ -13,7 +13,7 @@ import {
   getWebLink,
   readVideoIds,
 } from "../utils/lr-utils";
-import { LabStep, LearningObject, LearningResource, preOrder } from "./lo-types";
+import { AnswerOption, LabStep, LearningObject, LearningResource, preOrder, QuestionType } from "./lo-types";
 import { readWholeFile, readYamlFile, writeFile } from "../utils/utils";
 import fm from "front-matter";
 
@@ -44,6 +44,9 @@ export const courseBuilder = {
     switch (lo.type) {
       case "lab":
         lo = this.buildLab(lo, lr);
+        break;
+      case "quiz":
+        lo = this.buildQuiz(lo, lr);
         break;
       case "talk":
         this.buildTalk(lo);
@@ -133,6 +136,50 @@ export const courseBuilder = {
         contentMd: contents.body,
         route: `${getRoute(lr)}/${shortTitle}`,
         id: shortTitle,
+      };
+      lo.los.push(labStep);
+    });
+    lo.img = getLabImage(lr);
+    // lr.lrs = [];
+    return lo;
+  },
+
+  buildQuiz(lo: LearningObject, lr: LearningResource): LearningObject {
+    const mdFiles = getFilesWithType(lr, "md").slice(1);
+    mdFiles.forEach((filename) => {
+      const title = filename.substring(filename.indexOf(".") + 1, filename.lastIndexOf("."));
+      const wholeFile = readWholeFile(filename);
+      const contents = fm(wholeFile);
+      const fmAttributes = contents.attributes as Record<string, any>;
+
+      let questionType: QuestionType;
+      let questionMd: string;
+      let answerOptions: AnswerOption[] = [];
+      let textboxAnswers: string[] = [];
+      const optionsStartIndex = contents.body.indexOf("\n- [x]");
+      if (optionsStartIndex === -1) {
+        questionType = "textbox";
+        questionMd = contents.body;
+        if (fmAttributes.textboxAnswers !== undefined) textboxAnswers = fmAttributes.textboxAnswers as string[];
+      } else {
+        const [question, ...opts] = contents.body.split("\n- [");
+        questionMd = question;
+        answerOptions = opts.map((opt) => ({ option: opt.slice(2).trim(), isAnswer: opt[0] === "x" }));
+        const answerCount = answerOptions.reduce((a, opt) => {
+          return opt.isAnswer ? a + 1 : a;
+        }, 0);
+        questionType = answerCount > 1 ? "checkbox" : "radio";
+      }
+      const labStep = {
+        title,
+        questionType,
+        questionMd,
+        ...(fmAttributes.explanation && { explanation: fmAttributes.explanation }),
+        ...(fmAttributes.hint && { hint: fmAttributes.hint }),
+        ...(answerOptions.length > 0 && { answerOptions }),
+        ...(textboxAnswers.length > 0 && { textboxAnswers }),
+        route: `${getRoute(lr)}/${title}`,
+        id: title,
       };
       lo.los.push(labStep);
     });
